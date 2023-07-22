@@ -1,30 +1,42 @@
 const http = require('http');
+const fs = require('fs');
 
 const server = http.createServer((req,res) =>{
-    console.log(req.url, req.method, req.headers);
+    res.setHeader('Content-Type','text/html')
+    if(req.url === '/message' && req.method === 'POST'){
+        const body = [];
+        req.on('data' , (chunk)=>{
+            body.push(chunk);
+        })
+        req.on('end',()=>{
+            const parsedBody = Buffer.concat(body).toString();
+            const message =  parsedBody.split('=')[1];
+            fs.writeFileSync('message.txt' , message);
 
-    res.setHeader('Content-Type', 'text/html');
-    res.write('<html>')
-   
-    res.write('<head><title>My First Page</title></head>');
-    if(req.url === '/home'){
-        res.write('<body><h1>Welcome home</h1></body>');
-       }
-
-       else if(req.url === '/about')
-       {
-        res.write('<body><h1>Welcome to About Us page</h1></body>');
-       }
-
-       else if(req.url === '/node'){
-        res.write('<body><h1>Welcome to my Node Js project.</h1></body>');
+        })
+        res.statusCode = 302 ;
+        res.setHeader('Location' , '/')
+        return res.end();
     }
+    else{
+        fs.readFile('./message.txt', 'utf8', (err, data) => {
+            if (err) {
+              res.statusCode = 500;
+              res.end('Error reading the file.');
+              return;
+            }
+            res.statusCode = 200;
+            res.write("<html><head></head><body>")
+            res.write("<p>")
+            res.write(data)
+            res.write("</p>")
+            res.write("<form action='/message' method='POST'><input name='message'></input><button type='submit'> send </button></form>")
+            res.write('</body></html>')
+            return res.end();
+          })
        
-    // res.write('<body><h1>Welcome to my Node Js project.</h1></body>');
-    res.write('</html>');
-    res.end();
+    }
+    
+})
 
-});
-server.listen(3000);
-
-
+server.listen(3000)
